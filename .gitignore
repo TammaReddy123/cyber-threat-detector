@@ -57,6 +57,9 @@ reports/
 
 # Models (if you want to keep them local)
 # models/
+models/*.joblib
+models/*.pkl
+models/*.h5
 
 # Data (if you want to keep it local)
 # data/
