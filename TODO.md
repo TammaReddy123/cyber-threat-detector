@@ -1,9 +1,11 @@
-# TODO: Globe Modifications
+# Performance Optimization Tasks
 
-- [x] Modify texture loading to recolor oceans black and countries green
-- [x] Update fallback texture to black
-- [x] Remove country name labels from globe
-- [ ] Add continent labels to globe
-- [ ] Remove continent labels from globe
-- [ ] Add country boundaries to globe
-- [x] Add neon glow effect to globe
+## Completed
+- [x] Analyze current bottlenecks in backend/main.py
+- [x] Cache ML model instance globally in main.py
+- [x] Add LRU caching for AI analysis and country detection
+- [x] Implement parallel processing for multiple URLs using asyncio.gather
+- [x] Make VirusTotal calls optional and reduce/remove sleep delay
+
+## Completed
+- [x] Test the optimized implementation for performance improvements
