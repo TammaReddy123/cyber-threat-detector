@@ -131,8 +131,28 @@ def compute_risk_score(url, predicted_label, label_probs):
     is_blacklisted = check_blacklist(url)
     blacklist_score = 100 if is_blacklisted else 0
 
-    model_prob = max(label_probs.values())
-    ml_risk = model_prob * 70
+    # Calculate ML risk based on predicted label and confidence
+    model_prob = label_probs.get(predicted_label, 0)
+
+    # Base risk depends on the predicted threat type
+    if predicted_label == "benign":
+        # For benign predictions, risk should be very low when confidence is high
+        ml_risk = max(5, (1 - model_prob) * 25)  # Risk decreases with higher confidence
+    elif predicted_label == "phishingCredential":
+        base_ml_risk = 60  # High base risk for phishing
+        ml_risk = base_ml_risk + (model_prob * 25)  # Additional risk based on confidence
+    elif predicted_label == "malwareSite":
+        base_ml_risk = 70  # Very high base risk for malware
+        ml_risk = base_ml_risk + (model_prob * 20)  # Additional risk based on confidence
+    elif predicted_label == "adFraud":
+        base_ml_risk = 40  # Medium base risk for ad fraud
+        ml_risk = base_ml_risk + (model_prob * 30)  # Additional risk based on confidence
+    elif predicted_label == "financialScam":
+        base_ml_risk = 65  # High base risk for financial scams
+        ml_risk = base_ml_risk + (model_prob * 25)  # Additional risk based on confidence
+    else:
+        base_ml_risk = 30  # Default medium risk
+        ml_risk = base_ml_risk + (model_prob * 20)
 
     vt = scan_with_virustotal(url)
     vt_score = min(vt["malicious"] * 10 + vt["suspicious"] * 5, 30)
@@ -146,6 +166,9 @@ def compute_risk_score(url, predicted_label, label_probs):
         heuristic += 5
     if "-" in domain:
         heuristic += 5
+
+    with open("debug.log", "a") as f:
+        f.write(f"DEBUG: url={url}, domain='{domain}', len(domain)={len(domain)}, heuristic={heuristic}, ml_risk={ml_risk}, total_risk={total_risk}\n")
 
     geo = ip_to_country(ip)
 
