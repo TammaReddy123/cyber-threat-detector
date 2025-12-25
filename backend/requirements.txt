@@ -9,3 +9,5 @@ requests
 reportlab
 sqlalchemy
 alembic
+tldextract
+google-generativeai
