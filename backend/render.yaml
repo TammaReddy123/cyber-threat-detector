@@ -9,3 +9,5 @@ services:
         sync: false  # You'll set this manually
       - key: VIRUSTOTAL_API_KEY
         sync: false  # You'll set this manually
+      - key: GEMINI_API_KEY
+        sync: false  # You'll set this manually
