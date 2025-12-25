@@ -5,10 +5,15 @@ from feature_extraction import extract_url_features
 import pandas as pd
 
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "models", "url_rf_model.joblib")
-LABEL_ENCODER_PATH = os.path.join(BASE_DIR, "models", "label_encoder.joblib")
-PROCESSED_DATA_PATH = os.path.join(BASE_DIR, "data", "processed", "urls_features.csv")
+# Get the project root directory (parent of backend directory)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(PROJECT_ROOT, "models", "url_rf_model.joblib")
+LABEL_ENCODER_PATH = os.path.join(PROJECT_ROOT, "models", "label_encoder.joblib")
+PROCESSED_DATA_PATH = os.path.join(PROJECT_ROOT, "data", "processed", "urls_features.csv")
+
+print(f"Looking for models in: {PROJECT_ROOT}/models/")
+print(f"Model path: {MODEL_PATH}")
+print(f"Label encoder path: {LABEL_ENCODER_PATH}")
 
 
 class URLThreatModel:
