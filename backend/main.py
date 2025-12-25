@@ -47,8 +47,11 @@ app.add_middleware(
 VT_API_KEY = os.getenv("VT_API_KEY") or os.getenv("VIRUSTOTAL_API_KEY")
 
 # Configure Google Gemini AI
-GEMINI_API_KEY = "AIzaSyCpT4wZ6BVwgbvcV89gamzKL6zRFBtaK08"
-genai.configure(api_key=GEMINI_API_KEY)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+else:
+    print("Warning: GEMINI_API_KEY not set. AI analysis will be limited.")
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 class URLRequest(BaseModel):
@@ -150,6 +153,88 @@ def detect_country_from_url(url):
         print(f"AI country detection failed: {e}")
         return "Unknown"
 
+def get_fallback_prediction(url: str):
+    """Enhanced fallback prediction using heuristics when ML model is not available"""
+    url_lower = url.lower()
+
+    # Check for suspicious patterns and keywords
+    suspicious_keywords = [
+        'login', 'password', 'bank', 'paypal', 'bitcoin', 'crypto', 'free', 'win', 'prize',
+        'account', 'verify', 'secure', 'update', 'confirm', 'alert', 'notification',
+        'signin', 'logon', 'authenticate', 'reset', 'recovery', 'support'
+    ]
+
+    high_risk_keywords = [
+        'paypal-login', 'bank-login', 'apple-id', 'microsoft-login', 'amazon-login',
+        'netflix-login', 'facebook-login', 'google-login', 'instagram-login'
+    ]
+
+    # Count suspicious elements
+    suspicious_count = sum(1 for keyword in suspicious_keywords if keyword in url_lower)
+    high_risk_count = sum(1 for keyword in high_risk_keywords if keyword in url_lower)
+
+    # Check for URL structure issues
+    has_https = url.startswith('https://')
+    has_suspicious_chars = any(char in url for char in ['@', '%', '?', '&', '='])
+    has_long_subdomain = len(url.split('.')) > 3
+    has_ip_address = any(part.isdigit() for part in url.replace('https://', '').replace('http://', '').split('.')[:4])
+
+    # Calculate risk score based on heuristics
+    risk_score = 0
+
+    if not has_https:
+        risk_score += 20  # HTTP is suspicious
+
+    if suspicious_count > 0:
+        risk_score += min(suspicious_count * 15, 40)  # Up to 40 points for suspicious keywords
+
+    if high_risk_count > 0:
+        risk_score += min(high_risk_count * 25, 50)  # Up to 50 points for high-risk keywords
+
+    if has_suspicious_chars:
+        risk_score += 10
+
+    if has_long_subdomain:
+        risk_score += 15
+
+    if has_ip_address:
+        risk_score += 25  # IP addresses are often malicious
+
+    # Determine prediction based on risk score
+    if risk_score >= 70:
+        prediction = "phishingCredential"
+        confidence = min(risk_score / 100.0, 0.95)
+        probs = {
+            "benign": max(0.05, 1 - confidence),
+            "phishingCredential": confidence,
+            "malwareSite": 0.02,
+            "adFraud": 0.01,
+            "financialScam": 0.02
+        }
+    elif risk_score >= 40:
+        prediction = "malwareSite"
+        confidence = risk_score / 100.0
+        probs = {
+            "benign": max(0.1, 0.6 - confidence),
+            "phishingCredential": confidence * 0.3,
+            "malwareSite": confidence,
+            "adFraud": confidence * 0.2,
+            "financialScam": confidence * 0.1
+        }
+    else:
+        prediction = "benign"
+        confidence = max(0.3, 0.8 - (risk_score / 100.0))
+        probs = {
+            "benign": confidence,
+            "phishingCredential": (1 - confidence) * 0.4,
+            "malwareSite": (1 - confidence) * 0.3,
+            "adFraud": (1 - confidence) * 0.2,
+            "financialScam": (1 - confidence) * 0.1
+        }
+
+    print(f"Fallback prediction for {url}: {prediction} (risk_score: {risk_score}, confidence: {confidence:.2f})")
+    return prediction, confidence, probs
+
 @lru_cache(maxsize=100)
 def analyze_url_with_ai(url):
     """Analyze URL using Google Gemini AI to determine safety"""
@@ -233,22 +318,31 @@ async def analyze_url(request: URLRequest):
         country = ai_country if ai_country != "Unknown" else tld_country
 
         try:
-            if model_instance:
+            if model_instance and model_instance.model_available:
                 model_prediction, confidence, probs = model_instance.predict_single(url)
                 risk = compute_risk_score(url, model_prediction, probs)
+                print(f"ML Model prediction: {model_prediction}, confidence: {confidence}")
             else:
-                # Fallback if model failed to load
-                model_prediction, confidence, probs = "safe", 0.1, {"safe": 0.9, "malicious": 0.1}
-                risk = {"risk_score": 10, "severity": "Low"}
+                # Enhanced fallback prediction using heuristics
+                print("Using fallback prediction (ML model not available)")
+                model_prediction, confidence, probs = get_fallback_prediction(url)
+                risk = compute_risk_score(url, model_prediction, probs)
 
             # Determine final prediction based on risk score
             final_prediction = "malicious" if risk["risk_score"] >= 50 else "safe"
             final_confidence = risk["risk_score"] / 100.0
             risk_score = risk["risk_score"]
             severity = risk["severity"]
+            print(f"Final prediction: {final_prediction}, risk_score: {risk_score}")
         except Exception as e:
             print(f"ML Model analysis failed: {str(e)}")
-            # Continue with default safe values
+            # Enhanced fallback for complete failure
+            model_prediction, confidence, probs = get_fallback_prediction(url)
+            risk = {"risk_score": 25, "severity": "Medium"}
+            final_prediction = "safe"
+            final_confidence = 0.25
+            risk_score = 25
+            severity = "Medium"
 
         # VirusTotal integration
         try:
@@ -331,22 +425,31 @@ async def analyze_single_url(url: str):
         country = ai_country if ai_country != "Unknown" else tld_country
 
         try:
-            if model_instance:
+            if model_instance and model_instance.model_available:
                 model_prediction, confidence, probs = model_instance.predict_single(url)
                 risk = compute_risk_score(url, model_prediction, probs)
+                print(f"ML Model prediction: {model_prediction}, confidence: {confidence}")
             else:
-                # Fallback if model failed to load
-                model_prediction, confidence, probs = "safe", 0.1, {"safe": 0.9, "malicious": 0.1}
-                risk = {"risk_score": 10, "severity": "Low"}
+                # Enhanced fallback prediction using heuristics
+                print("Using fallback prediction (ML model not available)")
+                model_prediction, confidence, probs = get_fallback_prediction(url)
+                risk = compute_risk_score(url, model_prediction, probs)
 
             # Determine final prediction based on risk score
             final_prediction = "malicious" if risk["risk_score"] >= 50 else "safe"
             final_confidence = risk["risk_score"] / 100.0
             risk_score = risk["risk_score"]
             severity = risk["severity"]
+            print(f"Final prediction: {final_prediction}, risk_score: {risk_score}")
         except Exception as e:
             print(f"ML Model analysis failed for {url}: {str(e)}")
-            # Continue with default safe values
+            # Enhanced fallback for complete failure
+            model_prediction, confidence, probs = get_fallback_prediction(url)
+            risk = {"risk_score": 25, "severity": "Medium"}
+            final_prediction = "safe"
+            final_confidence = 0.25
+            risk_score = 25
+            severity = "Medium"
 
         # VirusTotal integration (optional - skip if no API key)
         try:
