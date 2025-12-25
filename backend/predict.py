@@ -7,13 +7,23 @@ import pandas as pd
 
 # Get the project root directory (parent of backend directory)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(PROJECT_ROOT, "models", "url_rf_model.joblib")
-LABEL_ENCODER_PATH = os.path.join(PROJECT_ROOT, "models", "label_encoder.joblib")
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Try to find models in backend directory first (for deployment), then in project root
+if os.path.exists(os.path.join(BACKEND_DIR, "url_rf_model.joblib")):
+    MODEL_PATH = os.path.join(BACKEND_DIR, "url_rf_model.joblib")
+    LABEL_ENCODER_PATH = os.path.join(BACKEND_DIR, "label_encoder.joblib")
+else:
+    MODEL_PATH = os.path.join(PROJECT_ROOT, "models", "url_rf_model.joblib")
+    LABEL_ENCODER_PATH = os.path.join(PROJECT_ROOT, "models", "label_encoder.joblib")
+
 PROCESSED_DATA_PATH = os.path.join(PROJECT_ROOT, "data", "processed", "urls_features.csv")
 
-print(f"Looking for models in: {PROJECT_ROOT}/models/")
-print(f"Model path: {MODEL_PATH}")
-print(f"Label encoder path: {LABEL_ENCODER_PATH}")
+# Debug prints for troubleshooting (can be removed in production)
+# print(f"Model path: {MODEL_PATH}")
+# print(f"Model exists: {os.path.exists(MODEL_PATH)}")
+# print(f"Label encoder exists: {os.path.exists(LABEL_ENCODER_PATH)}")
+# print(f"Processed data exists: {os.path.exists(PROCESSED_DATA_PATH)}")
 
 
 class URLThreatModel:
