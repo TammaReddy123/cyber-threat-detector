@@ -92,10 +92,13 @@ def extract_country(url):
     }
     return mapping.get(suffix, mapping.get(suffix.split(".")[-1], "Unknown"))
 
-@lru_cache(maxsize=100)
 def detect_country_from_url(url):
     """Use AI to detect country-related keywords in URL"""
     try:
+        # Skip AI analysis if GEMINI_API_KEY is not set
+        if not GEMINI_API_KEY:
+            return "Unknown"
+
         prompt = f"""
         Analyze the following URL and determine if it contains any country-related keywords, domain names, or references:
 
@@ -122,7 +125,7 @@ def detect_country_from_url(url):
         Return only the country name or "Unknown". Do not include any other text or explanation.
         """
 
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, generation_config={"temperature": 0.1, "max_output_tokens": 50})
         country = response.text.strip()
 
         # Clean up the response
@@ -150,7 +153,7 @@ def detect_country_from_url(url):
         return "Unknown"
 
     except Exception as e:
-        print(f"AI country detection failed: {e}")
+        print(f"AI country detection failed for {url}: {e}")
         return "Unknown"
 
 def get_fallback_prediction(url: str):
@@ -235,10 +238,19 @@ def get_fallback_prediction(url: str):
     print(f"Fallback prediction for {url}: {prediction} (risk_score: {risk_score}, confidence: {confidence:.2f})")
     return prediction, confidence, probs
 
-@lru_cache(maxsize=100)
 def analyze_url_with_ai(url):
     """Analyze URL using Google Gemini AI to determine safety"""
     try:
+        # Skip AI analysis if GEMINI_API_KEY is not set
+        if not GEMINI_API_KEY:
+            return {
+                "safety": "Unknown",
+                "risk_level": "Medium",
+                "threats": ["AI analysis not available"],
+                "recommendations": ["Manual verification recommended"],
+                "confidence": 50
+            }
+
         prompt = f"""
         Analyze the following URL for potential security threats and determine if it's safe or risky:
 
@@ -268,7 +280,7 @@ def analyze_url_with_ai(url):
         }}
         """
 
-        response = model.generate_content(prompt)
+        response = model.generate_content(prompt, generation_config={"temperature": 0.1, "max_output_tokens": 1000})
         result_text = response.text.strip()
 
         # Try to parse JSON response
@@ -289,7 +301,7 @@ def analyze_url_with_ai(url):
             }
 
     except Exception as e:
-        print(f"AI analysis failed: {e}")
+        print(f"AI analysis failed for {url}: {e}")
         return {
             "safety": "Unknown",
             "risk_level": "Medium",
