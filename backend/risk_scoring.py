@@ -167,9 +167,6 @@ def compute_risk_score(url, predicted_label, label_probs):
     if "-" in domain:
         heuristic += 5
 
-    with open("debug.log", "a") as f:
-        f.write(f"DEBUG: url={url}, domain='{domain}', len(domain)={len(domain)}, heuristic={heuristic}, ml_risk={ml_risk}, total_risk={total_risk}\n")
-
     geo = ip_to_country(ip)
 
     total_risk = min(100, round(ml_risk + vt_score + heuristic + blacklist_score, 2))
