@@ -189,6 +189,7 @@ def compute_risk_score(url, predicted_label, label_probs):
 
     reason = " ".join(reason_parts)
 
+    # Get geolocation data
     geo = None
     if domain_info.get("ip"):
         geo = get_ip_geolocation(domain_info["ip"])
@@ -199,5 +200,5 @@ def compute_risk_score(url, predicted_label, label_probs):
         "reason": reason,
         "vt": vt,
         "domain": domain_info,
-        "geo": geo   # ← NEW
+        "geo": geo
     }
