@@ -317,7 +317,7 @@ async def analyze_url(request: URLRequest):
         url = request.url
 
         # Initialize default values
-        final_prediction = "safe"
+        final_prediction = "benign"
         final_confidence = 0.1
         risk_score = 10
         severity = "Low"
@@ -340,9 +340,14 @@ async def analyze_url(request: URLRequest):
                 model_prediction, confidence, probs = get_fallback_prediction(url)
                 risk = compute_risk_score(url, model_prediction, probs)
 
-            # Determine final prediction based on risk score
-            final_prediction = "malicious" if risk["risk_score"] >= 50 else "safe"
-            final_confidence = risk["risk_score"] / 100.0
+            # Determine final prediction based on risk score and model prediction
+            if risk["risk_score"] >= 30:  # Lower threshold for better detection
+                final_prediction = "malicious"
+            else:
+                final_prediction = "benign"
+
+            # Use model confidence for final confidence, but adjust based on risk score
+            final_confidence = min(confidence, risk["risk_score"] / 100.0)
             risk_score = risk["risk_score"]
             severity = risk["severity"]
             print(f"Final prediction: {final_prediction}, risk_score: {risk_score}")
@@ -350,11 +355,15 @@ async def analyze_url(request: URLRequest):
             print(f"ML Model analysis failed: {str(e)}")
             # Enhanced fallback for complete failure
             model_prediction, confidence, probs = get_fallback_prediction(url)
-            risk = {"risk_score": 25, "severity": "Medium"}
-            final_prediction = "safe"
-            final_confidence = 0.25
-            risk_score = 25
-            severity = "Medium"
+            risk = compute_risk_score(url, model_prediction, probs)
+            # Determine final prediction based on risk score
+            if risk["risk_score"] >= 30:
+                final_prediction = "malicious"
+            else:
+                final_prediction = "benign"
+            final_confidence = min(confidence, risk["risk_score"] / 100.0)
+            risk_score = risk["risk_score"]
+            severity = risk["severity"]
 
         # VirusTotal integration
         try:
@@ -374,7 +383,7 @@ async def analyze_url(request: URLRequest):
         modelConfidence = final_confidence * 100  # Convert to percentage
         riskScore = risk_score
         adFraud = "High" if vt_mal > 0 or ai_analysis.get("risk_level") == "High" else "Low"
-        benign = "Yes" if final_prediction == "safe" else "No"
+        benign = "Yes" if final_prediction == "benign" else "No"
         financialScam = "Detected" if ai_analysis.get("threats", []) and any("financial" in threat.lower() for threat in ai_analysis.get("threats", [])) else "Not Detected"
         malwareSite = "Yes" if final_prediction == "malicious" else "No"
         phishingCredential = "High Risk" if ai_analysis.get("risk_level") == "High" else "Low Risk"
@@ -387,6 +396,9 @@ async def analyze_url(request: URLRequest):
             "prediction": prediction,
             "modelConfidence": modelConfidence,
             "riskScore": riskScore,
+            "severity": severity,
+            "vt_malicious": vt_mal,
+            "vt_suspicious": vt_susp,
             "adFraud": adFraud,
             "benign": benign,
             "financialScam": financialScam,
@@ -424,7 +436,7 @@ async def analyze_single_url(url: str):
         print(f"Analyzing URL: {url}")
 
         # Initialize default values
-        final_prediction = "safe"
+        final_prediction = "benign"
         final_confidence = 0.1
         risk_score = 10
         severity = "Low"
@@ -447,9 +459,14 @@ async def analyze_single_url(url: str):
                 model_prediction, confidence, probs = get_fallback_prediction(url)
                 risk = compute_risk_score(url, model_prediction, probs)
 
-            # Determine final prediction based on risk score
-            final_prediction = "malicious" if risk["risk_score"] >= 50 else "safe"
-            final_confidence = risk["risk_score"] / 100.0
+            # Determine final prediction based on risk score and model prediction
+            if risk["risk_score"] >= 30:  # Lower threshold for better detection
+                final_prediction = "malicious"
+            else:
+                final_prediction = "benign"
+
+            # Use model confidence for final confidence, but adjust based on risk score
+            final_confidence = min(confidence, risk["risk_score"] / 100.0)
             risk_score = risk["risk_score"]
             severity = risk["severity"]
             print(f"Final prediction: {final_prediction}, risk_score: {risk_score}")
@@ -457,11 +474,15 @@ async def analyze_single_url(url: str):
             print(f"ML Model analysis failed for {url}: {str(e)}")
             # Enhanced fallback for complete failure
             model_prediction, confidence, probs = get_fallback_prediction(url)
-            risk = {"risk_score": 25, "severity": "Medium"}
-            final_prediction = "safe"
-            final_confidence = 0.25
-            risk_score = 25
-            severity = "Medium"
+            risk = compute_risk_score(url, model_prediction, probs)
+            # Determine final prediction based on risk score
+            if risk["risk_score"] >= 30:
+                final_prediction = "malicious"
+            else:
+                final_prediction = "benign"
+            final_confidence = min(confidence, risk["risk_score"] / 100.0)
+            risk_score = risk["risk_score"]
+            severity = risk["severity"]
 
         # VirusTotal integration (optional - skip if no API key)
         try:
@@ -481,7 +502,7 @@ async def analyze_single_url(url: str):
         modelConfidence = final_confidence * 100  # Convert to percentage
         riskScore = risk_score
         adFraud = "High" if vt_mal > 0 or ai_analysis.get("risk_level") == "High" else "Low"
-        benign = "Yes" if final_prediction == "safe" else "No"
+        benign = "Yes" if final_prediction == "benign" else "No"
         financialScam = "Detected" if ai_analysis.get("threats", []) and any("financial" in threat.lower() for threat in ai_analysis.get("threats", [])) else "Not Detected"
         malwareSite = "Yes" if final_prediction == "malicious" else "No"
         phishingCredential = "High Risk" if ai_analysis.get("risk_level") == "High" else "Low Risk"

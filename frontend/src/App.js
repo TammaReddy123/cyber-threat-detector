@@ -25,7 +25,8 @@ function App() {
 
   const handleAnalyze = async (url) => {
     // API call to backend
-    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/analyze`, {
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8008';
+    const response = await fetch(`${backendUrl}/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),

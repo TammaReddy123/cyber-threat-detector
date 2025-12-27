@@ -14,13 +14,13 @@ test_urls = [
 
 def test_url_analysis(url):
     try:
-        response = requests.post("http://localhost:8007/analyze", json={"url": url})
+        response = requests.post("http://localhost:8008/analyze", json={"url": url})
         if response.status_code == 200:
             data = response.json()
             print(f"\nURL: {url}")
             print(f"Prediction: {data['prediction']}")
-            print(f"Confidence: {data['confidence']:.2f}")
-            print(f"Risk Score: {data['risk_score']}")
+            print(f"Confidence: {data['modelConfidence']:.2f}")
+            print(f"Risk Score: {data['riskScore']}")
             print(f"Severity: {data['severity']}")
             print(f"VT Malicious: {data['vt_malicious']}")
             print(f"VT Suspicious: {data['vt_suspicious']}")

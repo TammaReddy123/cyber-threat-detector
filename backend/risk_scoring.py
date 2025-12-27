@@ -138,18 +138,9 @@ def compute_risk_score(url, predicted_label, label_probs):
     if predicted_label == "benign":
         # For benign predictions, risk should be very low when confidence is high
         ml_risk = max(5, (1 - model_prob) * 25)  # Risk decreases with higher confidence
-    elif predicted_label == "phishingCredential":
-        base_ml_risk = 60  # High base risk for phishing
-        ml_risk = base_ml_risk + (model_prob * 25)  # Additional risk based on confidence
-    elif predicted_label == "malwareSite":
-        base_ml_risk = 70  # Very high base risk for malware
+    elif predicted_label == "malicious":
+        base_ml_risk = 70  # Very high base risk for malicious
         ml_risk = base_ml_risk + (model_prob * 20)  # Additional risk based on confidence
-    elif predicted_label == "adFraud":
-        base_ml_risk = 40  # Medium base risk for ad fraud
-        ml_risk = base_ml_risk + (model_prob * 30)  # Additional risk based on confidence
-    elif predicted_label == "financialScam":
-        base_ml_risk = 65  # High base risk for financial scams
-        ml_risk = base_ml_risk + (model_prob * 25)  # Additional risk based on confidence
     else:
         base_ml_risk = 30  # Default medium risk
         ml_risk = base_ml_risk + (model_prob * 20)

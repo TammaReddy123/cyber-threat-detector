@@ -77,8 +77,8 @@ function Dashboard({ onAnalyze, onMultipleAnalyze }) {
         const result = await onAnalyze(url);
         setCurrentResult(result);
 
-        // Show security alert for malicious URLs
-        if (result.prediction === 'Malware Site' || result.riskScore > 50) {
+        // Show security alert for malicious URLs (adjusted threshold to match backend)
+        if (result.prediction === 'Malware Site' || result.riskScore > 30) {
           setSecurityAlert({
             isVisible: true,
             url: result.url,
@@ -97,7 +97,9 @@ function Dashboard({ onAnalyze, onMultipleAnalyze }) {
           benign: 'Unknown',
           financialScam: 'Unknown',
           malwareSite: 'Unknown',
-          phishingCredential: 'Unknown'
+          phishingCredential: 'Unknown',
+          country: 'Unknown',
+          aiAnalysis: { safety: 'Unknown', risk_level: 'Unknown', threats: ['Analysis failed'], recommendations: ['Try again later'], confidence: 0 }
         });
       }
       setIsScanning(false);
@@ -112,7 +114,7 @@ function Dashboard({ onAnalyze, onMultipleAnalyze }) {
       setMultipleResults([]);
       try {
         const urls = multipleUrls.split('\n').map(url => url.trim()).filter(url => url);
-        const response = await fetch('http://localhost:8008/analyze-multiple', {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/analyze-multiple`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ urls }),
@@ -251,7 +253,7 @@ function Dashboard({ onAnalyze, onMultipleAnalyze }) {
                     <strong>Prediction:</strong> <span style={{ color: result.prediction === 'Benign' ? '#00ff00' : '#ff0000' }}>{result.prediction}</span>
                   </div>
                   <div className="result-item">
-                    <strong>Risk Score:</strong> <span style={{ color: result.riskScore > 50 ? '#ff0000' : '#00ff00' }}>{result.riskScore}/100</span>
+                    <strong>Risk Score:</strong> <span style={{ color: result.riskScore > 30 ? '#ff0000' : '#00ff00' }}>{result.riskScore}/100</span>
                   </div>
                   <div className="result-item">
                     <strong>Confidence:</strong> <span style={{ color: '#ffff00' }}>{result.modelConfidence.toFixed(1)}%</span>
