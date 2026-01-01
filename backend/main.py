@@ -16,6 +16,13 @@ import asyncio
 from functools import lru_cache
 import json
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   # or your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 load_dotenv()
 
 # Global model instance for caching
